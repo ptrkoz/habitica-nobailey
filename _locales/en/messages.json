@@ -1,0 +1,29 @@
+{
+  "extensionDescription": {
+    "message": "Removes 'New Stuff by Bailey' pop-ups in Habitica"
+  },
+  "disabled": {
+    "message": "Disabled"
+  },
+  "disabledDescription": {
+    "message": "Disabled by Habitica NoBailey extension."
+  },
+  "popupRemoved": {
+    "message": "Pop-up removed"
+  },
+  "infoAdded": {
+    "message": "Added info about disabled pop-ups to notification settings"
+  },
+  "linkRestored": {
+    "message": "Restored link to pop-up in notification settings"
+  },
+  "extensionEnabled": {
+    "message": "'New Stuff by Bailey' pop-ups will now be removed automatically."
+  },
+  "extensionDisabled": {
+    "message": "'New Stuff by Bailey' pop-ups will now be displayed."
+  },
+  "popupsBlockedText": {
+    "message": "Pop-ups blocked"
+  }
+}

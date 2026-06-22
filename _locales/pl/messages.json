@@ -1,0 +1,29 @@
+{
+  "extensionDescription": {
+    "message": "Usuwa pop-upy 'Nowości od Bailey' w Habitica"
+  },
+  "disabled": {
+    "message": "Wyłączono"
+  },
+  "disabledDescription": {
+    "message": "Wyłączono przez rozszerzenie Habitica NoBailey."
+  },
+  "popupRemoved": {
+    "message": "Pop-up usunięty"
+  },
+  "infoAdded": {
+    "message": "Dodano informację o wyłączonych pop-upach w ustawieniach powiadomień"
+  },
+  "linkRestored": {
+    "message": "Przywrócono link do pop-upa w ustawieniach powiadomień"
+  },
+  "extensionEnabled": {
+    "message": "Pop-upy 'Nowości od Bailey' będą teraz usuwane automatycznie."
+  },
+  "extensionDisabled": {
+    "message": "Pop-upy 'Nowości od Bailey' będą teraz wyświetlane."
+  },
+  "popupsBlockedText": {
+    "message": "Zablokowane pop-upy"
+  }
+}
