@@ -1,5 +1,9 @@
 (function () {
 
+  const DOM_LOADING_TIMEOUT = 10000;
+  const DOM_LOADING_INTERVAL = 10;
+  const OBSERVER_TIMEOUT = 150;
+
   const extensionName = chrome.runtime.getManifest().name;
 
   function logInConsole(message) {
@@ -7,13 +11,22 @@
   }
 
   async function getNumberOfBlockedPopups() {
-  const data = await chrome.storage.local.get("counter");
-  return data.counter ?? 0;
+    try {
+      const data = await chrome.storage.local.get("counter");
+      return data.counter ?? 0;
+    } catch (error) {
+      logInConsole('errorGettingCounter');
+      return 0;
+    }
   }
 
   async function incrementNumberOfBlockedPopups() {
-      const current = await getNumberOfBlockedPopups();
-      await chrome.storage.local.set({ counter: current + 1 });
+      try {
+        const current = await getNumberOfBlockedPopups();
+        await chrome.storage.local.set({ counter: current + 1 });
+      } catch (error) {
+        logInConsole('errorIncrementingCounter');
+      }
   }
 
   let isRemoving = false;
@@ -48,67 +61,74 @@
     }
   }
 
-    function addDisabledBaileyPopupInfoInSettings() {
-      const interval = setInterval(() => {
-          const link = document.querySelector('#viewBaileyLink');
-          if (link && getComputedStyle(link).display !== 'none') {
-              link.style.display = 'none';
+  let addDisabledBaileyPopupInfoInSettingsTimeout = null;
+  let addDisabledBaileyPopupInfoInSettingsInterval = null;
+  function addDisabledBaileyPopupInfoInSettings() {
+    const addDisabledBaileyPopupInfoInSettingsInterval = setInterval(() => {
+        const link = document.querySelector('#viewBaileyLink');
+        if (link && getComputedStyle(link).display !== 'none') {
+            link.style.display = 'none';
 
-              const info = document.createElement('span');
-              info.id = 'nobailey-info';
-              info.textContent = chrome.i18n.getMessage("disabled");
-              info.style.pointerEvents = '';
-              info.style.cursor = 'help';
-              info.setAttribute('title', chrome.i18n.getMessage("disabledDescription"));
-              
-              const parent = link.parentElement;
-              parent.querySelector('#nobailey-info')?.remove();
-              parent.appendChild(info);
+            const info = document.createElement('span');
+            info.id = 'nobailey-info';
+            info.textContent = chrome.i18n.getMessage("disabled");
+            info.style.pointerEvents = '';
+            info.style.cursor = 'help';
+            info.setAttribute('title', chrome.i18n.getMessage("disabledDescription"));
+            
+            const parent = link.parentElement;
+            parent.querySelector('#nobailey-info')?.remove();
+            parent.appendChild(info);
 
-              logInConsole('infoAdded');
-              clearInterval(interval);
-          }
-      }, 100);
-
-      setTimeout(() => clearInterval(interval), 5000);
+            logInConsole('infoAdded');
+            clearInterval(addDisabledBaileyPopupInfoInSettingsInterval);
+        }
+    }, DOM_LOADING_INTERVAL);
+    addDisabledBaileyPopupInfoInSettingsTimeout = setTimeout(() => clearInterval(addDisabledBaileyPopupInfoInSettingsInterval), DOM_LOADING_TIMEOUT);
     }
 
+    let restoreOriginalBaileyLinkInSettingsTimeout = null;
+    let restoreOriginalBaileyLinkInSettingsInterval = null;
     function restoreOriginalBaileyLinkInSettings() {
-      const interval = setInterval(() => {
+      const restoreOriginalBaileyLinkInSettingsInterval = setInterval(() => {
           const link = document.querySelector('#viewBaileyLink');
           const info = document.querySelector('#nobailey-info');
           if (link && info) {
               info.remove();
               link.style.display = '';
               logInConsole('linkRestored');
-              clearInterval(interval);
+              clearInterval(restoreOriginalBaileyLinkInSettingsInterval);
           }
-      }, 100);
-
-      setTimeout(() => clearInterval(interval), 5000);
+      }, DOM_LOADING_INTERVAL);
+      restoreOriginalBaileyLinkInSettingsTimeout = setTimeout(() => clearInterval(restoreOriginalBaileyLinkInSettingsInterval), DOM_LOADING_TIMEOUT);
     }
 
     async function isExtensionEnabled() {
-      const data = await chrome.storage.local.get("masterSwitch");
-      return data.masterSwitch ?? true;
-    }
-
-    async function checkForBaileyPopup() {
-      const isEnabled = await isExtensionEnabled();
-      if (isEnabled && document.querySelector('#new-stuff___BV_modal_outer_')) {
-        removeBaileyPopup();
-        const interval = setInterval(() => {
-          if (removeBaileyPopup()) {
-            clearInterval(interval);
-          }
-        }, 10);
-        setTimeout(() => clearInterval(interval), 5000);
+      try {
+          const data = await chrome.storage.local.get("masterSwitch");
+          return data.masterSwitch ?? true;
+      } catch (error) {
+          logInConsole('errorGettingState');
+          return true;
       }
     }
 
-    async function checkForNotificationsSettingsPage() {
+    let checkForBaileyPopupTimeout = null;
+    let checkForBaileyPopupInterval = null;
+    async function checkForBaileyPopup() {
+      if (document.querySelector('#new-stuff___BV_modal_outer_')) {
+        removeBaileyPopup();
+        const checkForBaileyPopupInterval = setInterval(() => {
+          if (removeBaileyPopup()) {
+            clearInterval(checkForBaileyPopupInterval);
+          }
+        }, DOM_LOADING_INTERVAL);
+        checkForBaileyPopupTimeout = setTimeout(() => clearInterval(checkForBaileyPopupInterval), DOM_LOADING_TIMEOUT);
+      }
+    }
+
+    async function checkForNotificationsSettingsPage(isEnabled) {
       if (window.location.pathname === '/user/settings/notifications') {
-        const isEnabled = await isExtensionEnabled();
         const link = document.querySelector('#viewBaileyLink');
         const info = document.querySelector('#nobailey-info');
         if (isEnabled && link && getComputedStyle(link).display !== 'none') {
@@ -124,10 +144,12 @@
     const popupObserver = new MutationObserver(() => {
         clearTimeout(popupObserverTimeout);
         popupObserverTimeout = setTimeout(() => {
-            checkForBaileyPopup();
-        }, 150);
+            let isEnabled = isExtensionEnabled();
+            if (isEnabled) {
+              checkForBaileyPopup();
+            }
+        }, OBSERVER_TIMEOUT);
     });
-
 
     function initPopupObserver() {
       if (!document.body) {
@@ -146,8 +168,9 @@
     const titleObserver = new MutationObserver(() => {
         clearTimeout(titleObserverTimeout);
         titleObserverTimeout = setTimeout(() => {
-            checkForNotificationsSettingsPage();
-        }, 150);
+            let isEnabled = isExtensionEnabled();
+            checkForNotificationsSettingsPage(isEnabled);
+        }, OBSERVER_TIMEOUT);
     });
 
     function initTitleObserver() {
@@ -165,11 +188,30 @@
     
     chrome.storage.onChanged.addListener((changes) => {
       if (changes.masterSwitch) {
-        checkForBaileyPopup();
-        checkForNotificationsSettingsPage();
+        let isEnabled = isExtensionEnabled();
+        if (isEnabled) {
+          checkForBaileyPopup();
+          initPopupObserver();
+          initTitleObserver();
+        } else {
+          clearTimeout(popupObserverTimeout);
+          clearTimeout(titleObserverTimeout);
+          clearTimeout(addDisabledBaileyPopupInfoInSettingsTimeout);
+          clearTimeout(restoreOriginalBaileyLinkInSettingsTimeout);
+          clearTimeout(checkForBaileyPopupTimeout);
+          clearInterval(addDisabledBaileyPopupInfoInSettingsInterval);
+          clearInterval(restoreOriginalBaileyLinkInSettingsInterval);
+          clearInterval(checkForBaileyPopupInterval);
+          popupObserver.disconnect();
+          titleObserver.disconnect();
+        }
+        checkForNotificationsSettingsPage(isEnabled);
       }
     });
 
-    checkForBaileyPopup();
-    checkForNotificationsSettingsPage();
+    let isEnabled = isExtensionEnabled();
+    if (isEnabled) {
+      checkForBaileyPopup();
+    }
+    checkForNotificationsSettingsPage(isEnabled);
 })();

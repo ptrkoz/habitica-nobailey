@@ -8,13 +8,26 @@ document.addEventListener("DOMContentLoaded", () => {
     popupsBlockedTextEl.textContent = popupsBlockedText;
 });
 
+function logInConsole(message) {
+    console.log(`[${extensionName}]: ${chrome.i18n.getMessage(message)}`);
+}
+
 async function getState() {
-    const data = await chrome.storage.local.get("masterSwitch");
-    return data.masterSwitch ?? true;
+    try {
+        const data = await chrome.storage.local.get("masterSwitch");
+        return data.masterSwitch ?? true;
+    } catch (error) {
+        logInConsole('errorGettingState');
+        return true;
+    }
 }
 
 async function setState(value) {
-    await chrome.storage.local.set({ masterSwitch: value });
+    try {
+        await chrome.storage.local.set({ masterSwitch: value });
+    } catch (error) {
+        logInConsole('errorSettingState');
+    }
 }
 
 function renderState(state, counter) {
@@ -26,8 +39,13 @@ function renderState(state, counter) {
 }
 
 async function getNumberOfBlockedPopups() {
-    const data = await chrome.storage.local.get("counter");
-    return data.counter ?? 0;
+    try {
+        const data = await chrome.storage.local.get("counter");
+        return data.counter ?? 0;
+    } catch (error) {
+        logInConsole('errorGettingCounter');
+        return 0;
+    }
 }
 
 async function showPopup() {
